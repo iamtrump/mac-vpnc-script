@@ -600,12 +600,12 @@ restore_resolvconf_unbound() {
 modify_resolvconf_networksetup() {
 	# Get service name:
 	IFACE=$(echo 'show State:/Network/Global/IPv4' | scutil | grep PrimaryInterface | cut -d: -f2)
-	SERVICE_NAME=$(networksetup -listnetworkserviceorder | grep $IFACE | cut -d: -f2 | cut -d, -f1)
+	SERVICE_NAME=$(networksetup -listnetworkserviceorder | grep $IFACE | cut -d' ' -f3 | cut -d, -f1)
 	# Backup dns settings:
-	networksetup -getdnsservers $SERVICE_NAME > /var/run/vpnc/networksetup.dns-backup
+	networksetup -getdnsservers $SERVICE_NAME | sed "s/There aren't any DNS Servers set on $SERVICE_NAME./Empty/g" > /var/run/vpnc/networksetup.dns-backup
 	# Set dns:
-	networksetup -setdnsservers $SERVICE_NAME $INTERNAL_IP4_DNS $(cat /var/run/vpnc/networksetup.dns-backup)
-	# Reset dns cache
+	networksetup -setdnsservers $SERVICE_NAME $INTERNAL_IP4_DNS
+	# Reset dns cache:
 	killall -HUP mDNSResponder
 }
 
@@ -615,9 +615,9 @@ restore_resolvconf_networksetup() {
 	SERVICE_NAME=$(networksetup -listnetworkserviceorder | grep $IFACE | cut -d: -f2 | cut -d, -f1)
 	# Set dns:
 	networksetup -setdnsservers $SERVICE_NAME $(cat /var/run/vpnc/networksetup.dns-backup)
-	# Reset dns cache
+	# Reset dns cache:
 	killall -HUP mDNSResponder
-	# Remove dns backup
+	# Remove dns backup:
 	rm /var/run/vpnc/networksetup.dns-backup
 }
 
