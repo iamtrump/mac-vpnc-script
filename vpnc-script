@@ -605,6 +605,12 @@ modify_resolvconf_networksetup() {
 	networksetup -getdnsservers $SERVICE_NAME | sed "s/There aren't any DNS Servers set on $SERVICE_NAME./Empty/g" > /var/run/vpnc/networksetup.dns-backup
 	# Set dns:
 	networksetup -setdnsservers $SERVICE_NAME $INTERNAL_IP4_DNS
+	if [ -n "$CISCO_DEF_DOMAIN" ]; then
+		# Backup searchdomains settings:
+		networksetup -getsearchdomains $SERVICE_NAME | sed "s/There aren't any Search Domains set on $SERVICE_NAME./Empty/g" > /var/run/vpnc/networksetup.searchdomains-backup
+		# Set searchdomains:
+		networksetup -setsearchdomains $SERVICE_NAME $CISCO_DEF_DOMAIN
+	fi
 	# Reset dns cache:
 	killall -HUP mDNSResponder
 }
@@ -613,8 +619,14 @@ restore_resolvconf_networksetup() {
 	# Get service name:
 	IFACE=$(echo 'show State:/Network/Global/IPv4' | scutil | grep PrimaryInterface | cut -d: -f2)
 	SERVICE_NAME=$(networksetup -listnetworkserviceorder | grep $IFACE | cut -d: -f2 | cut -d, -f1)
-	# Set dns:
+	# Restore dns:
 	networksetup -setdnsservers $SERVICE_NAME $(cat /var/run/vpnc/networksetup.dns-backup)
+	if [ -n "$CISCO_DEF_DOMAIN" ]; then
+		# Restore searchdomains:
+		networksetup -setsearchdomains $SERVICE_NAME $(cat /var/run/vpnc/networksetup.searchdomains-backup)
+		# Remove searchdomains backup
+		rm /var/run/vpnc/networksetup.searchdomains-backup
+	fi
 	# Reset dns cache:
 	killall -HUP mDNSResponder
 	# Remove dns backup:
